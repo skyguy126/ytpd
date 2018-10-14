@@ -1,7 +1,10 @@
-import urllib2, re, pafy, threading, os
-from bs4 import BeautifulSoup
+import re, pafy, threading, os, requests, json
 from pydub import AudioSegment
 from Tkinter import *
+
+keys = open('key.json', 'r')
+API_KEY = json.loads(keys.read())['api_key']
+keys.close()
 
 vid_url_list = []
 vid_list = []
@@ -19,7 +22,7 @@ def add_dw():
 def delete_dw():
     if not dw_titles.curselection():
         pass
-    else:s
+    else:
 
         index = dw_titles.curselection()[0]
         dw_titles.delete(index, index)
@@ -81,7 +84,8 @@ def load_async():
 def load():
     try:
         get_urls(playlist_url.get())
-    except:
+    except Exception as e:
+        print "Exception: " + str(e)
         clear()
         enable_ui()
         return
@@ -98,12 +102,11 @@ def load():
     enable_ui()
 
 def get_urls(url):
-    response = urllib2.urlopen(url).read()
-    soup = BeautifulSoup(response, "lxml")
-    links = soup.find_all('a', attrs={'class':'pl-video-title-link'})
-    for a in links:
-        vidid = re.search("v=[^\&\?\/]+", a.get("href")).group(0)
-        vid_url_list.append(vidid[2:])
+    r = requests.get("https://www.googleapis.com/youtube/v3/playlistItems?playlistId=" + url + "&maxResults=50&part=contentDetails&key=" + API_KEY)
+    items = json.loads(r.text)["items"]
+
+    for item in items:
+        vid_url_list.append(item["contentDetails"]["videoId"])
 
 def selectall(event=None):
     try:
@@ -118,7 +121,7 @@ playlist_url = StringVar()
 playlist_url_entry = Entry(win, width=80, textvariable=playlist_url)
 playlist_url_entry.event_add('<<Paste>>', '<Control-v>')
 playlist_url_entry.event_add('<<Copy>>', '<Control-c>')
-playlist_url.set("Youtube Playlist URL")
+playlist_url.set("Playlist ID")
 playlist_url_entry.grid(row=0,column=0)
 
 list_frame = Frame(win)
